@@ -1,0 +1,43 @@
+Server CENTOS 7
+Zimbra : zcs-8.6.0
+
+Install Server Centos 7
+Set Hostname : mail.forumanak.id
+Set Hosts : 
+IPSERVER mail.forumanak.id mail
+
+Disable SELinux
+# sudo vim /etc/sysconfig/selinux
+# SELINUX=disabled
+
+Matiin Firewall
+# systemctl disable firewalld
+# systemctl stop firewalld
+
+
+Stop Proses server (kalo ada)
+# systemctl stop httpd
+# systemctl disable httpd
+# systemctl stop mysqld
+# systemctl disable mysqld
+# systemctl stop postfix
+# systemctl disable postfix
+# systemctl stop sendmail
+# systemctl disable sendmail
+
+Sebelum Install Zimbra, Update dulu
+# yum update
+
+Install depedensi yg dibutuhkan
+# yum install wget unzip nptl nmap-ncat sudo-1.8.6p7-13 libidn-1.28-3 gmp-6.0.0-11 libaio-0.3.109-12 gmp-6.0.0-11 libaio-0.3.109-12 libstdc++-4.8.3-9 unzip-6.0-13 perl-core perl-5.16.3 sysstat sqlite
+
+Download Zimbra
+# sudo wget https://files.zimbra.com/downloads/8.6.0_GA/zcs-8.6.0_GA_1153.RHEL7_64.20141215151110.tgz
+
+Ekstrak, setelah itu masuk ke folder dan Install
+./install.sh
+
+Sampai disini, Install dulu aja semua dan input domain
+domain harus sudah mengarah ke IP Server, karena kalo tidak nanti error..
+
+masih prosess, blum berhasil..
