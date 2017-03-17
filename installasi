@@ -40,4 +40,82 @@ Ekstrak, setelah itu masuk ke folder dan Install
 Sampai disini, Install dulu aja semua dan input domain
 domain harus sudah mengarah ke IP Server, karena kalo tidak nanti error..
 
-masih prosess, blum berhasil..
+Main menu
+
+   1) Common Configuration:                                                  
+   2) zimbra-ldap:                             Enabled                       
+   3) zimbra-logger:                           Enabled                       
+   4) zimbra-mta:                              Enabled                       
+   5) zimbra-dnscache:                         Enabled                       
+   6) zimbra-snmp:                             Enabled                       
+   7) zimbra-store:                            Enabled                       
+        +Create Admin User:                    yes                           
+        +Admin user to create:                 admin@mail.forumanak.id       
+******* +Admin Password                        UNSET                         
+        +Anti-virus quarantine user:           virus-quarantine.9hy_cpw8ci@mail.forumanak.id
+
+
+Setting Password Admin terlebih dahulu, 
+*** CONFIGURATION COMPLETE - press 'a' to apply
+Select from menu, or press 'a' to apply config (? - help) 
+
+Setelah itu tekan a dan tunggu proses selesai.
+
+
+[root@mail ~]# systemctl start httpd
+[root@mail ~]# systemctl status httpd
+● httpd.service - The Apache HTTP Server
+   Loaded: loaded (/usr/lib/systemd/system/httpd.service; disabled; vendor preset: disabled)
+   Active: active (running) since Fri 2017-03-17 05:01:16 EDT; 27s ago
+     Docs: man:httpd(8)
+           man:apachectl(8)
+ Main PID: 24351 (httpd)
+   Status: "Total requests: 0; Current requests/sec: 0; Current traffic:   0 B/sec"
+   CGroup: /system.slice/httpd.service
+           ├─24351 /usr/sbin/httpd -DFOREGROUND
+           ├─24352 /usr/sbin/httpd -DFOREGROUND
+           ├─24353 /usr/sbin/httpd -DFOREGROUND
+           ├─24354 /usr/sbin/httpd -DFOREGROUND
+           ├─24355 /usr/sbin/httpd -DFOREGROUND
+           └─24356 /usr/sbin/httpd -DFOREGROUND
+
+Mar 17 05:01:16 mail.forumanak.id systemd[1]: Starting The Apache HTTP Server...
+Mar 17 05:01:16 mail.forumanak.id systemd[1]: Started The Apache HTTP Server.
+
+[root@mail ~]# firewall-cmd --permanent --zone=public --add-service=http 
+success
+[root@mail ~]# firewall-cmd --permanent --zone=public --add-service=https
+success
+[root@mail ~]# firewall-cmd --reload
+
+[root@mail ~]# systemctl restart httpd
+[root@mail ~]# firewall-cmd --zone=public --add-port=2083/tcp --permanent
+success
+[root@mail ~]# firewall-cmd --reload
+success
+
+ENABLE/RESTART CROND
+[root@mail ~]# systemctl enable crond
+[root@mail ~]# systemctl restart crond
+
+UNCOMMENT menjadi	
+[root@mail ~]# vim /etc/rsyslog.conf
+$modload imupd
+$UDPServerRun514
+
+UPDATE rsyslog
+/opt/zimbra/libexec/zmsyslogsetup
+
+Login ke USER ZIMBRA
+su – zimbra
+zmupdateauthkeys
+
+Setelah Itu Restar Zimbra
+zmcontrol restart
+zmcontrol status
+
+Server Zimbra sudah bisa diakses
+https://IP SERVER
+
+untuk login ke Admin, blom bisa hehehe..
+masih prosessss..
