@@ -1,0 +1,23 @@
+Install Ulang Zimbra 
+./install -u
+
+KONFIG ULANG
+/opt/zimbra/libexec/zmsetup.pl 
+
+LOGIN ke ZIMBRA 
+su - zimbra
+
+ALLOW PORT
+firewall-cmd --zone=public --add-port=2083/tcp --permanent
+success
+firewall-cmd --reload
+success
+
+RESTART HTTPD 
+systemctl restart httpd
+
+ALLOW HTTP/HTTPS
+firewall-cmd --permanent --zone=public --add-service=http 
+firewall-cmd --permanent --zone=public --add-service=https
+firewall-cmd --reload
+
