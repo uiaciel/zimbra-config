@@ -1,0 +1,459 @@
+KONFIG ULANG
+/opt/zimbra/libexec/zmsetup.pl 
+
+KONFIGURASI PROXY & NAME SERVER
+https://wiki.zimbra.com/wiki/Configuring-Proxy-Server%2BChange-Zimbra-Hostname
+
+Run on proxy servers:
+
+/opt/zimbra/libexec/zmproxyconfig -m -w -e -x <proxy mode> -H `zmhostname`
+zmprov ms `zmhostname` zimbraReverseProxyHttpEnabled TRUE
+zmprov ms `zmhostname` zimbraReverseProxyMailMode <proxy mode>
+zmprov md domain.com zimbraPublicServiceHostname mail.domain.com
+zmprov md domain.com zimbraPublicServiceProtocol https
+zmprov md domain.com zimbraPublicServicePort 443
+zmtlsctl both  --> this setp is not required, if there is no mailbox server (jetty) running on  proxy host.
+zmcontrol stop ; zmcontrol start
+
+Run on Mailbox servers:
+
+/opt/zimbra/libexec/zmproxyconfig -m -w -e -H `zmhostname`
+zmprov md domain.com zimbraPublicServiceHostname mail.domain.com
+zmprov md domain.com zimbraPublicServiceProtocol https
+zmprov md domain.com zimbraPublicServicePort 443
+zmprov ms `zmhostname` zimbraMailReferMode reverse-proxied
+zmtlsctl <mode>
+zmcontrol stop ; zmcontrol start 
+
+Steps to change zmhostname:
+
+1. Stop the flow of mail/Zimbra and take backup.
+2. The new hostname must exist in the DNS before zmsetservername is run. If it does not already  exist in the DNS, we need to add the new hostname to the DNS now.
+Note: If the box is duplicate of production server, prevent this server from affecting the  production server by halting communications between test and live servers.
+3. execute the following commands:
+su - zimbra
+/opt/zimbra/libexec/zmsetservername -o old.server.com -n new.server.com (replace old and new  hostnames as per your requirement).
+4. Reconfigured the system for its new hostname as necessary for the operating system, (very  important to do this AFTER step 3 - edited /etc/hosts & /etc/sysconfig/network files and update the  new hostname in Red Hat).
+5. Reboot.
+Examples
+
+Configuring Proxy
+
+[zimbra@corp ~]$ zmprov -l gas
+corp.vinay.com -> LDAP Master/Proxy
+mail1.vinay.com -> Mail Store/MTA
+mail2.vinay.com -> Mail Store/MTA 
+mail3.vinay.com -> Mail Store/MTA
+replica.vinay.com -> LDAP Replica
+[zimbra@corp ~]$
+
+Exeute on Proxy Server
+
+[zimbra@corp ~]$ /opt/zimbra/libexec/zmproxyconfig -m -w -e -x both -H `zmhostname`
+[zimbra@corp ~]$ zmprov ms `zmhostname` zimbraReverseProxyHttpEnabled TRUE
+[zimbra@corp ~]$ zmprov ms `zmhostname` zimbraReverseProxyMailMode both
+[zimbra@corp ~]$ zmprov mcf zimbraPublicServiceHostname corp.zimbra.com
+[zimbra@corp ~]$ zmprov mcf zimbraPublicServiceProtocol https
+[zimbra@corp ~]$ zmprov mcf zimbraPublicServicePort 443
+[zimbra@corp ~]$ zmtlsctl both
+Setting ldap config zimbraMailMode both for corp.vinay.com...done.
+Rewriting config files for cyrus-sasl, webxml and mailboxd...done.
+[zimbra@corp ~]$ zmcontrol stop ; zmcontrol start
+Host corp.vinay.com
+Stopping zmconfigd...Done.
+Stopping stats...Done.
+Stopping spell...Done.
+Stopping snmp...Done.
+Stopping cbpolicyd...Done.
+Stopping archiving...Done.
+Stopping antivirus...Done.
+Stopping antispam...Done.
+Stopping imapproxy...Done.
+Stopping memcached...Done.
+Stopping mailbox...Done.
+Stopping logger...Done.
+Stopping ldap...Done.
+Host corp.vinay.com
+Starting ldap...Done.
+Starting zmconfigd...Done.
+Starting logger...Done.
+Starting memcached...Done.
+Starting imapproxy...Done.
+Starting snmp...Done.
+Starting stats...Done.
+[zimbra@corp ~]$ zmcontrol status
+Host corp.vinay.com
+imapproxy Running
+ldap Running
+logger Running
+memcached Running
+snmp Running
+stats Running
+zmconfigd Running
+[zimbra@corp ~]$
+
+Execute on all mail stores
+
+Note:
+
+you can set zimbraPublicServiceHostname|zimbraPublicServiceProtocol|zimbraPublicServicePort either per domain or else for the global config as per your requirement (md domain.com or mcf) setting values for the global config will apply to all domains.
+
+[zimbra@mail1 ~]$ /opt/zimbra/libexec/zmproxyconfig -m -w -e -H `zmhostname`
+[zimbra@mail1 ~]$ zmprov mcf zimbraPublicServiceHostname corp.zimbra.com
+[zimbra@mail1 ~]$ zmprov mcf zimbraPublicServiceProtocol https
+[zimbra@mail1 ~]$ zmprov mcf zimbraPublicServicePort 443
+[zimbra@mail1 ~]$ zmprov ms `zmhostname` zimbraMailReferMode reverse-proxied
+[zimbra@mail1 ~]$ zmtlsctl both
+Setting ldap config zimbraMailMode both for mail1.vinay.com...done.
+Rewriting config files for cyrus-sasl, webxml and mailboxd...done.
+[zimbra@mail1 ~]$ zmcontrol stop ; zmcontrol start ; zmcontrol status
+Host mail1.vinay.com
+Stopping zmconfigd...Done.
+Stopping stats...Done.
+Stopping mta...Done.
+Stopping spell...Done.
+Stopping snmp...Done.
+Stopping cbpolicyd...Done.
+Stopping archiving...Done.
+Stopping antivirus...Done.
+Stopping antispam...Done.
+Stopping imapproxy...Done.
+Stopping memcached...Done.
+Stopping mailbox...Done.
+Stopping convertd...Done.
+Stopping logger...Done.
+Host mail1.vinay.com
+Starting zmconfigd...Done.
+Starting logger...Done.
+Starting convertd...Done.
+Starting mailbox...Done.
+Starting antispam...Done.
+Starting antivirus...Done.
+Starting archiving...Done.
+Starting snmp...Done.
+Starting spell...Done.
+Starting mta...Done.
+Starting stats...Done.
+Host mail1.vinay.com
+antispam Running
+antivirus Running
+archiving Running
+convertd Running
+logger Running
+mailbox Running
+mta Running
+snmp Running
+spell Running
+stats Running
+zmconfigd Running
+[zimbra@mail1 ~]$
+
+[zimbra@mail2 ~]$ /opt/zimbra/libexec/zmproxyconfig -m -w -e -H `zmhostname`
+[zimbra@mail2 ~]$ zmprov mcf zimbraPublicServiceHostname corp.zimbra.com
+[zimbra@mail2 ~]$ zmprov mcf zimbraPublicServiceProtocol https
+[zimbra@mail2 ~]$ zmprov mcf zimbraPublicServicePort 443
+[zimbra@mail1 ~]$ zmprov ms `zmhostname` zimbraMailReferMode reverse-proxied
+[zimbra@mail2 ~]$ zmtlsctl both
+Setting ldap config zimbraMailMode both for mail2.vinay.com...done.
+Rewriting config files for cyrus-sasl, webxml and mailboxd...done.
+[zimbra@mail2 ~]$ zmcontrol stop ; zmcontrol start ; zmcontrol status
+Host mail2.vinay.com
+Stopping zmconfigd...Done.
+Stopping stats...Done.
+Stopping mta...Done.
+Stopping spell...Done.
+Stopping snmp...Done.
+Stopping cbpolicyd...Done.
+Stopping archiving...Done.
+Stopping antivirus...Done.
+Stopping antispam...Done.
+Stopping imapproxy...Done.
+Stopping memcached...Done.
+Stopping mailbox...Done.
+Stopping convertd...Done.
+Stopping logger...Done.
+Host mail2.vinay.com
+Starting zmconfigd...Done.
+Starting logger...Done.
+Starting convertd...Done.
+Starting mailbox...Done.
+Starting antispam...Done.
+Starting antivirus...Done.
+Starting archiving...Done.
+Starting snmp...Done.
+Starting spell...Done.
+Starting mta...Done.
+Starting stats...Done.
+Host mail2.vinay.com
+antispam Running
+antivirus Running
+archiving Running
+convertd Running
+logger Running
+mailbox Running
+mta Running
+snmp Running
+spell Running
+stats Running
+zmconfigd Running
+[zimbra@mail2 ~]$
+
+[zimbra@mail3 ~]$ /opt/zimbra/libexec/zmproxyconfig -m -w -e -H `zmhostname`
+[zimbra@mail3 ~]$ zmprov mcf zimbraPublicServiceHostname corp.zimbra.com
+[zimbra@mail3 ~]$ zmprov mcf zimbraPublicServiceProtocol https
+[zimbra@mail3 ~]$ zmprov mcf zimbraPublicServicePort 443
+[zimbra@mail1 ~]$ zmprov ms `zmhostname` zimbraMailReferMode reverse-proxied
+[zimbra@mail3 ~]$ zmtlsctl both
+Setting ldap config zimbraMailMode both for mail3.vinay.com...done.
+Rewriting config files for cyrus-sasl, webxml and mailboxd...done.
+[zimbra@mail3 ~]$ zmcontrol stop ; zmcontrol start ; zmcontrol status
+Host mail3.vinay.com
+Stopping zmconfigd...Done.
+Stopping stats...Done.
+Stopping mta...Done.
+Stopping spell...Done.
+Stopping snmp...Done.
+Stopping cbpolicyd...Done.
+Stopping archiving...Done.
+Stopping antivirus...Done.
+Stopping antispam...Done.
+Stopping imapproxy...Done.
+Stopping memcached...Done.
+Stopping mailbox...Done.
+Stopping convertd...Done.
+Stopping logger...Done.
+Host mail3.vinay.com
+Starting zmconfigd...Done.
+Starting logger...Done.
+Starting convertd...Done.
+Starting mailbox...Done.
+Starting antispam...Done.
+Starting antivirus...Done.
+Starting archiving...Done.
+Starting snmp...Done.
+Starting spell...Done.
+Starting mta...Done.
+Starting stats...Done.
+Host mail3.vinay.com
+antispam Running
+antivirus Running
+archiving Running
+convertd Running
+logger Running
+mailbox Running
+mta Running
+snmp Running
+spell Running
+stats Running
+zmconfigd Running
+[zimbra@mail3 ~]$
+garpb = getAllReverseProxyBackends
+
+[zimbra@corp ~]$ zmprov -garpb
+server mail1.vinay.com:80;
+server mail2.vinay.com:80;
+server mail3.vinay.com:80;
+[zimbra@corp ~]$
+[zimbra@mail1 ~]$ zmprov -garpb
+server mail1.vinay.com:80;
+server mail2.vinay.com:80;
+server mail3.vinay.com:80;
+[zimbra@mail1 ~]$
+[zimbra@mail2 ~]$ zmprov -garpb
+server mail1.vinay.com:80;
+server mail2.vinay.com:80;
+server mail3.vinay.com:80;
+[zimbra@mail2 ~]$
+[zimbra@mail3 ~]$ zmprov -garpb
+server mail1.vinay.com:80;
+server mail2.vinay.com:80;
+server mail3.vinay.com:80;
+[zimbra@mail3 ~]$
+
+[zimbra@corp ~]$ zmprov -l gs `zmhostname` |grep -i vinay.com
+# name corp.vinay.com
+cn: corp.vinay.com
+zimbraBackupReportEmailRecipients: admin@corp.vinay.com
+zimbraBackupReportEmailSender: admin@corp.vinay.com
+zimbraConvertdURL: http://mail1.vinay.com:7047/convert
+zimbraServiceHostname: corp.vinay.com
+[zimbra@corp ~]$
+[zimbra@mail1 ~]$ zmprov -l gs `zmhostname` |grep -i vinay.com
+# name mail1.vinay.com
+cn: mail1.vinay.com
+zimbraBackupReportEmailRecipients: admin@corp.vinay.com
+zimbraBackupReportEmailSender: admin@corp.vinay.com
+zimbraConvertdURL: http://mail1.vinay.com:7047/convert
+zimbraMtaAuthHost: mail1.vinay.com
+zimbraMtaAuthURL: http://mail1.vinay.com:80/service/soap/
+zimbraServiceHostname: mail1.vinay.com
+zimbraSmtpHostname: mail1.vinay.com
+zimbraSpellCheckURL: http://mail1.vinay.com:7780/aspell.php
+[zimbra@mail1 ~]$
+[zimbra@mail2 ~]$ zmprov -l gs `zmhostname` |grep -i vinay.com
+# name mail2.vinay.com
+cn: mail2.vinay.com
+zimbraBackupReportEmailRecipients: admin@corp.vinay.com
+zimbraBackupReportEmailSender: admin@corp.vinay.com
+zimbraConvertdURL: http://mail1.vinay.com:7047/convert
+zimbraMtaAuthHost: mail2.vinay.com
+zimbraMtaAuthURL: http://mail2.vinay.com:80/service/soap/
+zimbraServiceHostname: mail2.vinay.com
+zimbraSmtpHostname: mail2.vinay.com
+zimbraSpellCheckURL: http://mail2.vinay.com:7780/aspell.php
+[zimbra@mail2 ~]$
+[zimbra@mail3 ~]$ zmprov -l gs `zmhostname` |grep -i vinay.com
+# name mail3.vinay.com
+cn: mail3.vinay.com
+zimbraBackupReportEmailRecipients: admin@corp.vinay.com
+zimbraBackupReportEmailSender: admin@corp.vinay.com
+zimbraConvertdURL: http://mail1.vinay.com:7047/convert
+zimbraMtaAuthHost: mail3.vinay.com
+zimbraMtaAuthURL: https://mail3.vinay.com:443/service/soap/
+zimbraServiceHostname: mail3.vinay.com
+zimbraSmtpHostname: mail3.vinay.com
+zimbraSpellCheckURL: http://mail3.vinay.com:7780/aspell.php
+[zimbra@mail3 ~]$
+Changing zmhostname
+
+[zimbra@mail3 ~]$ zmcontrol stop
+Host mail3.vinay.com
+Stopping zmconfigd...Done.
+Stopping stats...Done.
+Stopping mta...Done.
+Stopping spell...Done.
+Stopping snmp...Done.
+Stopping cbpolicyd...Done.
+Stopping archiving...Done.
+Stopping antivirus...Done.
+Stopping antispam...Done.
+Stopping imapproxy...Done.
+Stopping memcached...Done.
+Stopping mailbox...Done.
+Stopping convertd...Done.
+Stopping logger...Done.
+[zimbra@mail3 ~]$ /opt/zimbra/libexec/zmsetservername -o mail3.vinay.com -n mail3a.vinay.com
+Getting local config zimbra_home=/opt/zimbra
+Getting local config ldap_is_master=false
+Getting local config zimbra_ldap_userdn=uid=zimbra,cn=admins,cn=zimbra
+Getting local config zimbra_ldap_password=YipL6c71
+Getting local config ldap_master_url=ldap://corp.vinay.com:389
+Getting local config ldap_starttls_supported=1
+Getting global config zimbraLogHostname=mail3.vinay.com
+Renaming mail3.vinay.com to mail3a.vinay.com
+Shutting down zimbra...done.
+Getting local config ldap_url=ldap://replica.vinay.com:389 ldap://corp.vinay.com:389
+Getting local config ldap_host=corp.vinay.com
+Getting local config av_notify_user=admin@mail3.vinay.com
+Setting local config av_notify_user=admin@mail3a.vinay.com
+Getting local config av_notify_domain=mail3.vinay.com
+Setting local config av_notify_domain=mail3a.vinay.com
+Getting local config snmp_trap_host=mail3.vinay.com
+Setting local config snmp_trap_host=mail3a.vinay.com
+Getting local config smtp_source=admin@mail3.vinay.com
+Setting local config smtp_source=admin@mail3a.vinay.com
+Getting local config smtp_destination=admin@mail3.vinay.com
+Setting local config smtp_destination=admin@mail3a.vinay.com
+Getting local config zimbra_server_hostname=mail3.vinay.com
+Setting local config zimbra_server_hostname=mail3a.vinay.com
+Searching for ldap server entry...done.
+Renaming cn=mail3.vinay.com,cn=servers,cn=zimbra...done.
+Updating zimbraServiceHostname for cn=mail3a.vinay.com,cn=servers,cn=zimbra...done.
+Updating zimbraMtaAuthHost for cn=mail3a.vinay.com,cn=servers,cn=zimbra...Updating    zimbraSpellCheckURL for cn=mail3a.vinay.com,cn=servers,cn=zimbra...done.
+Updating zimbraSmtpHostname for cn=mail3a.vinay.com,cn=servers,cn=zimbra...done.
+Updating zimbraLogHostname for cn=config,cn=zimbra...done.
+Updating zimbraMailHost for uid=mail3-test1,ou=people,dc=corp,dc=vinay,dc=com...done.
+Updating zimbraMailHost for uid=testuser,ou=people,dc=corp,dc=vinay,dc=com...done.
+Updating zimbraMailTransport for uid=mail3-test1,ou=people,dc=corp,dc=vinay,dc=com...done.
+Updating zimbraMailTransport for uid=testuser,ou=people,dc=corp,dc=vinay,dc=com...done.
+Services:
+Getting local config ldap_port=389
+Reinitializing the mta config...done.
+Reinitializing the snmp config...done.
+[zimbra@mail3 ~]$
+
+[root@mail3 ~]# nano /etc/hosts
+[root@mail3 ~]# nano /etc/sysconfig/network
+[root@mail3 ~]# cat /etc/hosts
+127.0.0.1 localhost.localdomain localhost4 localhost4.localdomain4 localhost
+10.112.233.174 mail3a.vinay.com mail3a
+[root@mail3 ~]# cat /etc/sysconfig/network
+NETWORKING=yes
+HOSTNAME=mail3a.vinay.com
+[root@mail3 ~]# hostname mail3a.vinay.com
+[root@mail3 ~]# reboot
+Broadcast message from root@mail3a.vinay.com
+(/dev/pts/0) at 18:27 ...
+The system is going down for reboot NOW!
+[root@mail3 ~]#
+
+After Server Reboot:
+
+[zimbra@corp ~]$ zmprov -garpb ; zmprov -l gs `zmhostname` |grep -i vinay.com
+server mail1.vinay.com:80;
+server mail2.vinay.com:80;
+server mail3a.vinay.com:80;
+# name corp.vinay.com
+cn: corp.vinay.com
+zimbraBackupReportEmailRecipients: admin@corp.vinay.com
+zimbraBackupReportEmailSender: admin@corp.vinay.com
+zimbraConvertdURL: http://mail1.vinay.com:7047/convert
+zimbraServiceHostname: corp.vinay.com
+[zimbra@corp ~]$
+
+[zimbra@mail1 ~]$ zmprov -garpb ; zmprov -l gs `zmhostname` |grep -i vinay.com
+server mail1.vinay.com:80;
+server mail2.vinay.com:80;
+server mail3a.vinay.com:80;
+# name mail1.vinay.com
+cn: mail1.vinay.com
+zimbraBackupReportEmailRecipients: admin@corp.vinay.com
+zimbraBackupReportEmailSender: admin@corp.vinay.com
+zimbraConvertdURL: http://mail1.vinay.com:7047/convert
+zimbraMtaAuthHost: mail1.vinay.com
+zimbraMtaAuthURL: http://mail1.vinay.com:80/service/soap/
+zimbraServiceHostname: mail1.vinay.com
+zimbraSmtpHostname: mail1.vinay.com
+zimbraSpellCheckURL: http://mail1.vinay.com:7780/aspell.php
+[zimbra@mail1 ~]$
+
+[zimbra@mail2 ~]$ zmprov -garpb ; zmprov -l gs `zmhostname` |grep -i vinay.com
+server mail1.vinay.com:80;
+server mail2.vinay.com:80;
+server mail3a.vinay.com:80;
+# name mail2.vinay.com
+cn: mail2.vinay.com
+zimbraBackupReportEmailRecipients: admin@corp.vinay.com
+zimbraBackupReportEmailSender: admin@corp.vinay.com
+zimbraConvertdURL: http://mail1.vinay.com:7047/convert
+zimbraMtaAuthHost: mail2.vinay.com
+zimbraMtaAuthURL: http://mail2.vinay.com:80/service/soap/
+zimbraServiceHostname: mail2.vinay.com
+zimbraSmtpHostname: mail2.vinay.com
+zimbraSpellCheckURL: http://mail2.vinay.com:7780/aspell.php
+[zimbra@mail2 ~]$
+
+[zimbra@mail3a ~]$ zmprov -garpb ; zmprov -l gs `zmhostname` |grep -i vinay.com
+server mail1.vinay.com:80;
+server mail2.vinay.com:80;
+server mail3a.vinay.com:80;
+# name mail3a.vinay.com
+cn: mail3a.vinay.com
+zimbraBackupReportEmailRecipients: admin@corp.vinay.com
+zimbraBackupReportEmailSender: admin@corp.vinay.com
+zimbraConvertdURL: http://mail1.vinay.com:7047/convert
+zimbraMtaAuthHost: mail3a.vinay.com
+zimbraMtaAuthURL: https://mail3a.vinay.com:443/service/soap/
+zimbraServiceHostname: mail3a.vinay.com
+zimbraSmtpHostname: mail3a.vinay.com
+zimbraSpellCheckURL: http://mail3a.vinay.com:7780/aspell.php
+[zimbra@mail3a ~]$
+
+[zimbra@corp ~]$ zmprov ga mail1-test1@corp.vinay.com |grep -i zimbramailhost
+zimbraMailHost: mail1.vinay.com
+[zimbra@corp ~]$ zmprov ga mail2-test1@corp.vinay.com |grep -i zimbramailhost
+zimbraMailHost: mail2.vinay.com
+[zimbra@corp ~]$ zmprov ga mail3-test1@corp.vinay.com |grep -i zimbramailhost
+zimbraMailHost: mail3a.vinay.com
+[zimbra@corp ~]$
+
