@@ -1,21 +1,36 @@
 Server CENTOS 7
 Zimbra : zcs-8.6.0
 
-Install Server Centos 7
-Set Hostname : mail.forumanak.id
-Set Hosts : 
-IPSERVER mail.forumanak.id mail
+Install Server Centos 7 (Basic Server)
+HOSTNAME :
+[root@kumpulbareng ~]# hostnamectl 
+   Static hostname: kumpulbareng.id
+         Icon name: computer-server
+           Chassis: server
+        Machine ID: a45a1e06d60a4ba4ac678e52d7010142
+           Boot ID: df3ccfb72e2d4195abf8cfb47e2ff7ea
+  Operating System: CentOS Linux 7 (Core)
+       CPE OS Name: cpe:/o:centos:centos:7
+            Kernel: Linux 3.10.0-514.el7.x86_64
+      Architecture: x86-64
 
-Disable SELinux
+CHANGE HOSTNAME
+[root@kumpulbareng ~]# hostnamectl set-hostname HOSTNAMEBARU
+
+TAMBAH IP di HOSTS 
+# nano /etc/hosts
+IPSERVER mail.kumpulbareng.id mail
+
+DISABLE SELinux
 # sudo vim /etc/sysconfig/selinux
 # SELINUX=disabled
 
-Matiin Firewall
+STOP Firewall
 # systemctl disable firewalld
 # systemctl stop firewalld
 
 
-Stop Proses server (kalo ada)
+STOP PROSES (kalo ada)
 # systemctl stop httpd
 # systemctl disable httpd
 # systemctl stop mysqld
@@ -31,7 +46,7 @@ Sebelum Install Zimbra, Update dulu
 Install depedensi yg dibutuhkan
 # yum install wget unzip nptl nmap-ncat sudo-1.8.6p7-13 libidn-1.28-3 gmp-6.0.0-11 libaio-0.3.109-12 gmp-6.0.0-11 libaio-0.3.109-12 libstdc++-4.8.3-9 unzip-6.0-13 perl-core perl-5.16.3 sysstat sqlite
 
-Download Zimbra
+Download Zimbra (Mendingan download dulu, nanti Rsync)
 # sudo wget https://files.zimbra.com/downloads/8.6.0_GA/zcs-8.6.0_GA_1153.RHEL7_64.20141215151110.tgz
 
 Ekstrak, setelah itu masuk ke folder dan Install
@@ -60,10 +75,13 @@ Setting Password Admin terlebih dahulu,
 Select from menu, or press 'a' to apply config (? - help) 
 
 Setelah itu tekan a dan tunggu proses selesai.
+sampai sini ZIMBRA Selesai diinstall.
 
+AGAR Bisa diakses ke https://kumpulbareng.id maka Harus Aktifkan Apache2 (httpd)
+dan Allow Http/https di Firewalld
 
-[root@mail ~]# systemctl start httpd
-[root@mail ~]# systemctl status httpd
+# systemctl start httpd
+# systemctl status httpd
 ● httpd.service - The Apache HTTP Server
    Loaded: loaded (/usr/lib/systemd/system/httpd.service; disabled; vendor preset: disabled)
    Active: active (running) since Fri 2017-03-17 05:01:16 EDT; 27s ago
@@ -79,20 +97,24 @@ Setelah itu tekan a dan tunggu proses selesai.
            ├─24355 /usr/sbin/httpd -DFOREGROUND
            └─24356 /usr/sbin/httpd -DFOREGROUND
 
-Mar 17 05:01:16 mail.forumanak.id systemd[1]: Starting The Apache HTTP Server...
-Mar 17 05:01:16 mail.forumanak.id systemd[1]: Started The Apache HTTP Server.
+Mar 17 05:01:16 kumpulbareng.id systemd[1]: Starting The Apache HTTP Server...
+Mar 17 05:01:16 kumpulbareng.id systemd[1]: Started The Apache HTTP Server.
 
-[root@mail ~]# firewall-cmd --permanent --zone=public --add-service=http 
-success
-[root@mail ~]# firewall-cmd --permanent --zone=public --add-service=https
-success
-[root@mail ~]# firewall-cmd --reload
+# firewall-cmd --permanent --zone=public --add-service=http 
+# firewall-cmd --permanent --zone=public --add-service=https
+# firewall-cmd --reload
+# systemctl restart httpd
 
-[root@mail ~]# systemctl restart httpd
-[root@mail ~]# firewall-cmd --zone=public --add-port=2083/tcp --permanent
-success
-[root@mail ~]# firewall-cmd --reload
-success
+BUKA PORT Yang dibutuhkan (SMTP,POP3 dsb)
+# firewall-cmd --zone=public --add-port=7071/tcp --permanent
+# firewall-cmd --zone=public --add-port=587/tcp --permanent
+# firewall-cmd --zone=public --add-port=25/tcp --permanent
+# firewall-cmd --zone=public --add-port=110/tcp --permanent
+# firewall-cmd --zone=public --add-port=995/tcp --permanent
+# firewall-cmd --zone=public --add-port=143/tcp --permanent
+# firewall-cmd --zone=public --add-port=993/tcp --permanent
+# firewall-cmd --zone=public --add-port=2087/tcp --permanent
+# firewall-cmd --reload
 
 ENABLE/RESTART CROND
 [root@mail ~]# systemctl enable crond
@@ -110,12 +132,10 @@ Login ke USER ZIMBRA
 su – zimbra
 zmupdateauthkeys
 
-Setelah Itu Restar Zimbra
+RESTART ZIMBRA
 zmcontrol restart
 zmcontrol status
 
 Server Zimbra sudah bisa diakses
-https://IP SERVER
-
-untuk login ke Admin, blom bisa hehehe..
-masih prosessss..
+CLIENT EMAIL : https://IP SERVER
+ADMIN EMIAL : https://IPSERVER:7071
