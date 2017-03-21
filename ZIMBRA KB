@@ -1,3 +1,54 @@
+MANAGE / MONITOR EMAIL di Zimbra ==========================================================
+
+CEK ANTRIAN EMAIL
+$ mailq
+$ /opt/zimbra/bin/qshape
+
+CEK STATUS EMAIL
+$ sudo ~/libexec/zmqstat
+
+CEK EMAIL berdasarkan ID
+$ sudo /opt/zimbra/postfix/sbin/postcat -qv EC753D0D00
+
+FLUSH EMAIL 
+$ sudo /opt/zimbra/postfix/sbin/postqueue -f
+
+RELOAD ANTRIAN EMAIL
+$ sudo /opt/zimbra/postfix/sbin/postsuper -r ALL
+
+EMAIL HOLD berdasrkan user@domain
+$ sudo /opt/zimbra/postfix/sbin/postqueue -p | awk ‘BEGIN { RS = “” } { if ($7 == “user@domain.com” ) print $1 }’ | tr -d ‘!*’ | postsuper -h -
+
+CEK EMAIL TERHOLD
+$ sudo /opt/zimbra/postfix/sbin/postsuper -h EC753D0D00
+
+CEK JUMLAH EMAIL TERHOLD
+$ sudo /opt/zimbra/postfix/sbin/postsuper -h ALL
+
+HAPUS EMAIL BERDASARKAN ID 
+$ sudo /opt/zimbra/postfix/sbin/postsuper -d EC753D0D00
+
+HAPUS SEMUA EMAIL ANTRIAN
+$ sudo /opt/zimbra/postfix/sbin/postsuper -d ALL
+$ mailq | awk '{print $1}' | postsuper -d -
+
+HAPUS EMAIL YANG deferred (FROZEN) 
+$ sudo /opt/zimbra/postfix/sbin/postsuper -d ALL deferred
+
+HAPUS EMAIL YANG TerHOLD
+$ sudo /opt/zimbra/postfix/sbin/postsuper -d ALL hold
+
+HAPUS EMAIL BERDASARKAN FILE ID
+/opt/zimbra/postfix/sbin/postsuper -d - < ID.txt
+
+HAPUS EMAIL BERDASARKAN User@domain
+$ sudo /opt/zimbra/postfix/sbin/postqueue -p | egrep -v '^ *\(|-Queue ID-' \ | awk 'BEGIN { RS = "" } { if ($7 == "email@domain.com") print $1} ' | tr -d '*!'
+
+$ sudo /opt/zimbra/postfix/sbin/postqueue -p | /bin/egrep -v '*\(|-Queue ID-' \ | awk 'BEGIN { RS = "" } { if ($7 == "email@address.com") print $1} ' | tr -d '*!'
+
+Ref : https://wiki.zimbra.com/wiki/Managing-The-Postfix-Queues
+
+=====================================================================================
 Install Ulang Zimbra 
 ./install -u
 
